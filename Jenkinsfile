@@ -21,6 +21,7 @@ pipeline {
                     python3 -m venv .venv
                     .venv/bin/python -m pip install --upgrade pip
                     .venv/bin/python -m pip install -r requirements-dev.txt
+                    mkdir -p reports
                 '''
             }
         }
@@ -52,6 +53,28 @@ pipeline {
                     .venv/bin/python -m pytest tests/test_functional.py \
                         --junitxml=reports/functional-results.xml
                 '''
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'SonarScanner'
+
+                    withCredentials([
+                        string(
+                            credentialsId: 'python-sonar-token',
+                            variable: 'SONAR_TOKEN'
+                        )
+                    ]) {
+                        withSonarQubeEnv('SonarQube') {
+                            sh """
+                                "${scannerHome}/bin/sonar-scanner" \
+                                  -Dsonar.token=\$SONAR_TOKEN
+                            """
+                        }
+                    }
+                }
             }
         }
     }
