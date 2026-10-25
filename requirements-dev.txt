@@ -1,0 +1,6 @@
+-r requirements.txt
+build
+pytest
+pytest-cov
+httpx
+locust
