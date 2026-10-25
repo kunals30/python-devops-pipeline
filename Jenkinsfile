@@ -1,10 +1,14 @@
-
 pipeline {
     agent any
 
     options {
         timestamps()
         disableConcurrentBuilds()
+    }
+
+    environment {
+        NEXUS_REGISTRY = '10.0.1.212:8083'
+        DOCKER_IMAGE = 'python-devops-api'
     }
 
     stages {
@@ -129,6 +133,42 @@ PY
                 '''
             }
         }
+
+        stage('Docker Build and Push') {
+            steps {
+                script {
+                    def imageTag = "${env.BUILD_NUMBER}"
+                    def imageName = "${env.NEXUS_REGISTRY}/${env.DOCKER_IMAGE}"
+
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'nexus-python-credentials',
+                            usernameVariable: 'NEXUS_USER',
+                            passwordVariable: 'NEXUS_PASSWORD'
+                        )
+                    ]) {
+                        sh '''
+                            set -eu
+                            echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" \
+                                --username "$NEXUS_USER" \
+                                --password-stdin
+                        '''
+
+                        try {
+                            sh """
+                                set -eu
+                                docker build -t '${imageName}:${imageTag}' .
+                                docker push '${imageName}:${imageTag}'
+                            """
+                        } finally {
+                            sh 'docker logout "$NEXUS_REGISTRY" || true'
+                        }
+                    }
+
+                    echo "Published Docker image: ${imageName}:${imageTag}"
+                }
+            }
+        }
     }
 
     post {
@@ -152,3 +192,4 @@ PY
         }
     }
 }
+
