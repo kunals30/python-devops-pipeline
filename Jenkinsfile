@@ -72,11 +72,11 @@ pipeline {
                         )
                     ]) {
                         withSonarQubeEnv('SonarQube') {
-                            sh '''
+                            sh """
                                 set -eu
-                                "$SONAR_SCANNER_HOME/bin/sonar-scanner" \
-                                    -Dsonar.token="$SONAR_TOKEN"
-                            '''
+                                "${scannerHome}/bin/sonar-scanner" \
+                                    -Dsonar.token="\$SONAR_TOKEN"
+                            """
                         }
                     }
                 }
